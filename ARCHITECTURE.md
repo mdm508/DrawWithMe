@@ -48,7 +48,7 @@ SwiftUI app shell
 │   ├── GameKit transport adapter (next milestone)
 │   └── Codable protocol envelopes
 └── Services
-    ├── Game Center identity (next milestone)
+    ├── Game Center identity and private matchmaker
     ├── Curated word repository
     └── Moderation/reporting (before public testing)
 ```
@@ -134,6 +134,23 @@ Network synchronization will transmit normalized vector samples, not screenshots
 
 Email/password authentication is intentionally excluded. CloudKit public-database writes require an iCloud-authenticated user and are not a substitute for arbitrary account authentication.
 
+## Game Center boundary
+
+`GameCenterCoordinator` owns local-player authentication, private matchmaker
+presentation, and accepted invitations. UIKit controllers supplied by GameKit
+are presented through a passive SwiftUI bridge; they do not own room state.
+
+An established `GKMatch` remains private to the coordinator until the GameKit
+transport claims it exactly once. The UI observes only framework-independent
+identity and matchmaking states. This keeps GameKit player and match objects out
+of the deterministic room reducer while preserving the match for the next
+networking milestone.
+
+Match requests cap the room at the lower of the domain's seven-player limit and
+GameKit's runtime peer-to-peer limit. `GameCenterParticipantMapper` converts each
+matched player's stable identifier and bounded display name into a `Participant`;
+the host assigns the immutable join ordinal as part of the room handshake.
+
 ## Safety and moderation
 
 Before public rooms are enabled, the product must include objectionable-content handling, reporting, blocking, published support contact information, and a review process. Room kicks are immediate room-level protection; they are not sufficient evidence for an account ban by themselves.
@@ -152,7 +169,7 @@ Before public rooms are enabled, the product must include objectionable-content 
 - [x] V1 architecture and idea boundary
 - [x] Adaptive local PencilKit/finger drawing surface
 - [x] Pure room reducer with deterministic host migration
-- [ ] Game Center authentication and invitation adapter
+- [x] Game Center authentication and invitation adapter
 - [ ] Real-time GameKit transport
 - [ ] Networked stroke replication
 - [ ] Classic game loop and curated word bank

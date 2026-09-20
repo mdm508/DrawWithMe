@@ -1,16 +1,14 @@
 import SwiftUI
 
-/// Root composition surface for the current vertical slice.
-///
-/// Live rooms will replace the practice header after the Game Center adapter is
-/// connected. Keeping the drawing workspace independent makes input quality
-/// testable before authentication or networking is available.
+/// Root composition surface for identity, matchmaking, and drawing practice.
 struct AppRootView: View {
+    @StateObject private var gameCenter = GameCenterCoordinator()
+
     var body: some View {
-        DrawingWorkspaceView()
+        GameCenterHomeView(coordinator: gameCenter)
     }
 }
 
-#Preview("iPad drawing workspace") {
+#Preview("App home") {
     AppRootView()
 }

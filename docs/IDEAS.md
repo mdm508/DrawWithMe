@@ -11,6 +11,9 @@ These ideas are intentionally outside the current v1 commitment. Moving an item 
 
 ## Drawing expansion
 
+- Reorderable MMORPG-style quick slots for favorite tools and colors.
+- Optional usage-based suggestions for frequently selected tools, with the
+  player retaining final control over ordering.
 - Paint bucket with bounded-region filling.
 - Shapes, ruler, layers, stickers, textured tools, smudge, and highlighter.
 - Saved gallery and shareable replay.
@@ -19,7 +22,8 @@ These ideas are intentionally outside the current v1 commitment. Moving an item 
 ## Social and discovery
 
 - Public rooms and public matchmaking.
-- Optional audio rooms.
+- Optional audio rooms and FaceTime/SharePlay integration. This is explicitly
+  sidelined until the drawing and room experiences are proven.
 - Parties independent of an active game.
 - Friends, recent players, reactions, achievements, and seasonal events.
 
@@ -31,8 +35,7 @@ These ideas are intentionally outside the current v1 commitment. Moving an item 
 
 ## Platform growth
 
-- SharePlay launch from FaceTime and Messages.
+- SharePlay launch from Messages.
 - Game Center leaderboards and challenges.
 - Widgets, Live Activities, and visionOS investigation.
 - Non-Apple clients only after the native Apple product is validated.
-

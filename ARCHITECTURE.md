@@ -1,6 +1,6 @@
 # DrawWithMe architecture
 
-Last updated: 2026-09-19
+Last updated: 2026-09-20
 
 ## Product intent
 
@@ -114,19 +114,30 @@ The initial implementation uses JSON `Codable` messages for inspectability. A co
 
 ## Drawing architecture
 
-`DrawingCanvasView` is the only PencilKit bridge. The SwiftUI feature owns the selected tool and local preferences; PencilKit owns touch/Pencil recognition and rendering.
+`DrawingCanvasView` is the only PencilKit bridge. PencilKit owns touch/Pencil
+recognition, rendering, and the movable system `PKToolPicker`. The picker uses a
+named local autosave state so a player's last tool setup survives relaunches.
 
-The toolbar adapts by available width:
+### Canvas real-estate policy
 
-- Regular width: tools remain adjacent to the canvas.
-- Compact width: tools form a bottom strip that preserves the maximum drawing area.
-- Apple Pencil, finger, pointer, hardware keyboard, and accessibility input remain supported.
+- The canvas consumes the full content region; tools never require a permanent
+  side or bottom rail.
+- Party presence, prompt/timer information, and rare canvas-wide actions occupy
+  compact material overlays at the leading, center, and trailing top edges.
+- Overlay contents may change by game phase, but their zones and interaction
+  priority stay stable so players do not relearn the screen during a timed turn.
+- Apple Pencil, finger, pointer, hardware keyboard, and accessibility input
+  remain supported.
+
+Customizable quick slots and usage-based tool reordering require observed player
+needs and are deferred. Apple's tool picker is the v1 baseline because it is
+movable, familiar, compact, and already handles tool/color configuration.
 
 Network synchronization will transmit normalized vector samples, not screenshots or full-canvas images. A completed stroke is the durable unit. Clear-canvas is a versioned operation so an old stroke packet cannot resurrect erased content.
 
 ## Persistence
 
-- `AppStorage`: local tool/color preferences.
+- PencilKit tool-picker autosave: local tool/color preferences.
 - App bundle / signed remote update: curated word bank.
 - CloudKit: durable public metadata and moderation records only when introduced.
 - Game Center: v1 player identity, friends, invitations, and matchmaking.

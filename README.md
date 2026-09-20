@@ -18,9 +18,10 @@ Requirements:
 - iOS/iPadOS 18 or newer
 - macOS through Mac Catalyst 18 or newer
 
-Open `DrawWithMe.xcodeproj` in Xcode. The app currently launches into a local canvas and room-state laboratory so drawing interaction and deterministic host migration can be developed independently of live Game Center sessions.
+Open `DrawWithMe.xcodeproj` in Xcode. The app launches into the Game Center home
+and provides a local practice canvas backed by Apple's movable PencilKit tool
+picker, so drawing interaction can be refined independently of live rooms.
 
 ## Documentation standard
 
 Source documentation uses [Apple's Xcode markup syntax](https://developer.apple.com/library/archive/documentation/Xcode/Reference/xcode_markup_formatting_ref/). Architecture changes must update the architecture document in the same commit.
-

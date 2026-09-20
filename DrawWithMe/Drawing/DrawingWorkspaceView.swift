@@ -3,94 +3,42 @@ import SwiftUI
 
 /// Adaptive practice workspace used to refine core drawing interaction.
 ///
-/// The view leads with iPad landscape ergonomics but deliberately uses the same
-/// tool model for compact iPhone layouts and Mac Catalyst pointer input.
+/// The canvas consumes the full content area. Apple owns the movable drawing
+/// picker, while game information occupies small overlay zones instead of
+/// permanently shrinking the surface.
 struct DrawingWorkspaceView: View {
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-
     @State private var drawing = PKDrawing()
-    @State private var tool: DrawingTool = .pen
-    @AppStorage("drawing.preferredWidth") private var preferredWidth = DrawingWidth.medium.rawValue
-    @AppStorage("drawing.preferredColor") private var preferredColor = DrawingColor.black.rawValue
-
-    private var widthBinding: Binding<DrawingWidth> {
-        Binding(
-            get: { DrawingWidth(rawValue: preferredWidth) ?? .medium },
-            set: { preferredWidth = $0.rawValue }
-        )
-    }
-
-    private var colorBinding: Binding<DrawingColor> {
-        Binding(
-            get: { DrawingColor(rawValue: preferredColor) ?? .black },
-            set: { preferredColor = $0.rawValue }
-        )
-    }
-
-    private var selection: DrawingToolSelection {
-        DrawingToolSelection(
-            tool: tool,
-            width: widthBinding.wrappedValue,
-            color: colorBinding.wrappedValue
-        )
-    }
+    @State private var confirmsClear = false
 
     var body: some View {
-        NavigationStack {
-            GeometryReader { proxy in
-                let usesSideToolbar = horizontalSizeClass == .regular && proxy.size.width > 760
+        ZStack(alignment: .top) {
+            DrawingCanvasView(drawing: $drawing)
+                .background(Color.white)
+                .accessibilityLabel("Drawing canvas")
 
-                Group {
-                    if usesSideToolbar {
-                        HStack(spacing: 16) {
-                            canvas
-                            toolbar(orientation: .vertical)
-                        }
-                    } else {
-                        VStack(spacing: 12) {
-                            canvas
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                toolbar(orientation: .horizontal)
-                            }
-                        }
-                    }
-                }
-                .padding(16)
-            }
-            .navigationTitle("DrawWithMe")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Label("Practice canvas", systemImage: "person.2")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-            }
+            DrawingSessionHUD(
+                roomLabel: "Practice",
+                participantCount: 1,
+                activityLabel: "Free Draw",
+                clearDrawing: { confirmsClear = true }
+            )
+            .padding(12)
         }
-    }
-
-    private var canvas: some View {
-        DrawingCanvasView(drawing: $drawing, selection: selection)
-            .clipShape(RoundedRectangle(cornerRadius: 18))
-            .overlay {
-                RoundedRectangle(cornerRadius: 18)
-                    .stroke(.quaternary, lineWidth: 1)
+        .navigationTitle("Canvas")
+        .navigationBarTitleDisplayMode(.inline)
+        .confirmationDialog(
+            "Clear the whole drawing?",
+            isPresented: $confirmsClear,
+            titleVisibility: .visible
+        ) {
+            Button("Clear Drawing", role: .destructive) {
+                drawing = PKDrawing()
             }
-            .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
-            .accessibilityLabel("Drawing canvas")
-    }
-
-    private func toolbar(orientation: Axis) -> some View {
-        DrawingToolbar(
-            tool: $tool,
-            width: widthBinding,
-            color: colorBinding,
-            orientation: orientation,
-            clear: { drawing = PKDrawing() }
-        )
+            Button("Cancel", role: .cancel) {}
+        }
     }
 }
 
 #Preview("Compact finger layout") {
     DrawingWorkspaceView()
 }
-

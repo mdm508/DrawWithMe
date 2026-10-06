@@ -17,14 +17,14 @@ struct DrawingWorkspaceView: View {
                 .accessibilityLabel("Drawing canvas")
 
             DrawingSessionHUD(
-                roomLabel: "Practice",
+                roomLabel: "Local",
                 participantCount: 1,
                 activityLabel: "Free Draw",
                 clearDrawing: { confirmsClear = true }
             )
             .padding(12)
         }
-        .navigationTitle("Canvas")
+        .navigationTitle("Free Draw")
         .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog(
             "Clear the whole drawing?",

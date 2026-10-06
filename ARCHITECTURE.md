@@ -145,6 +145,14 @@ Network synchronization will transmit normalized vector samples, not screenshots
 
 Email/password authentication is intentionally excluded. CloudKit public-database writes require an iCloud-authenticated user and are not a substitute for arbitrary account authentication.
 
+## Current launch flow
+
+`AppRootView` presents `DrawingWorkspaceView` inside a navigation stack. Free Draw
+is the home screen and requires no account or network connection. The root does
+not instantiate `GameCenterCoordinator`; authentication, invitations, and
+matchmaking UI are deferred while the existing adapter remains available for
+future online play. Drawing tools and clear confirmation retain their behavior.
+
 ## Game Center boundary
 
 `GameCenterCoordinator` owns local-player authentication, private matchmaker

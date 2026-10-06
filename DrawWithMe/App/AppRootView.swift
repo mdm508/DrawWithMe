@@ -1,11 +1,14 @@
 import SwiftUI
 
-/// Root composition surface for identity, matchmaking, and drawing practice.
+/// Opens directly into local free drawing while online play is deferred.
+///
+/// The root does not create a Game Center coordinator, so drawing never waits
+/// for authentication or presents matchmaking UI.
 struct AppRootView: View {
-    @StateObject private var gameCenter = GameCenterCoordinator()
-
     var body: some View {
-        GameCenterHomeView(coordinator: gameCenter)
+        NavigationStack {
+            DrawingWorkspaceView()
+        }
     }
 }
 

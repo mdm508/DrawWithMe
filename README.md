@@ -18,9 +18,9 @@ Requirements:
 - iOS/iPadOS 18 or newer
 - macOS through Mac Catalyst 18 or newer
 
-Open `DrawWithMe.xcodeproj` in Xcode. The app launches into the Game Center home
-and provides a local practice canvas backed by Apple's movable PencilKit tool
-picker, so drawing interaction can be refined independently of live rooms.
+Open `DrawWithMe.xcodeproj` in Xcode. The app launches directly into Free Draw, backed by Apple's movable PencilKit
+tool picker. Game Center sign-in, invitations, and matchmaking are deferred; the
+existing adapter is retained for future online play.
 
 ## Documentation standard
 

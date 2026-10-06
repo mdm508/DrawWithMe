@@ -1,196 +1,45 @@
 # DrawWithMe architecture
 
-Last updated: 2026-09-20
+## Current scope
 
-## Product intent
-
-DrawWithMe is a native Apple-platform party game. iPad and Apple Pencil lead the interaction design, while the same core canvas adapts to finger input on iPhone and pointer input on Mac Catalyst. The first release validates whether groups repeatedly enjoy the classic draw-and-guess loop.
-
-## V1 boundary
-
-V1 includes:
-
-- Game Center identity, invitations, and private rooms.
-- Two to seven participants, subject to the runtime GameKit match limit.
-- One, three, or five rounds.
-- Thirty, sixty, ninety, or one-hundred-twenty-second turns.
-- Optional word-length hints.
-- A curated English word bank with three difficulty bands.
-- Pen, eraser, clear canvas, a compact color palette, and thin/medium/thick widths.
-- Text guesses, deterministic scoring, a podium, rematch, report, block, and room kick.
-- Recovery from any participant disconnect, including the current host.
-
-Everything else belongs in `docs/IDEAS.md` until promoted by the project manager.
-
-## Architectural principles
-
-1. **The room is replicated, not owned by a device.** The host coordinates commands but is never the sole holder of authoritative game state.
-2. **Rules are deterministic and transport-independent.** Given the same ordered event stream, every peer computes the same room snapshot.
-3. **Drawing traffic and game events have different reliability needs.** Live stroke samples favor latency; completed strokes, guesses, turns, scores, and membership changes require ordered delivery.
-4. **Platform frameworks terminate at adapters.** SwiftUI, PencilKit, GameKit, and CloudKit do not leak into the domain model.
-5. **Private-by-default.** Drawings and chat are ephemeral unless the user explicitly saves them.
-6. **Documentation changes with design.** A behavior is incomplete until its invariant and boundary are documented.
+The app opens directly into local Free Draw on iPad. Game Center, networking,
+room membership, host migration, and their tests have been removed from the
+current implementation. Online play is deferred; its earlier design is retained
+in the historical ADRs and Git history.
 
 ## Component map
 
 ```text
 SwiftUI app shell
-├── Drawing feature
-│   ├── Adaptive drawing workspace
-│   ├── PencilKit canvas adapter
-│   └── Local tool preferences
-├── Room feature
-│   ├── RoomSession actor
-│   ├── Deterministic RoomReducer
-│   └── Classic-mode state machine
-├── Networking
-│   ├── RoomTransport protocol
-│   ├── GameKit transport adapter (next milestone)
-│   └── Codable protocol envelopes
-└── Services
-    ├── Game Center identity and private matchmaker
-    ├── Curated word repository
-    └── Moderation/reporting (before public testing)
+└── Drawing feature
+    ├── DrawingWorkspaceView
+    ├── DrawingCanvasView (PencilKit adapter)
+    └── DrawingSessionHUD
 ```
 
-Dependency direction is always inward: adapters may depend on domain types; domain types never import UI or networking frameworks.
+`AppRootView` presents the workspace inside a navigation stack. No account,
+authentication, or network connection is required.
 
-The target deliberately does not use project-wide Main Actor isolation. SwiftUI
-views remain UI-isolated through their framework conformances, while room and
-protocol value types remain nonisolated and can be reduced or encoded away from
-the main thread.
+## Drawing
 
-## Room state machine
+`DrawingCanvasView` owns the PencilKit canvas through its coordinator. PencilKit
+handles input, rendering, and the movable system tool picker. Picker preferences
+use the local autosave name `DrawWithMe.DrawingTools`.
 
-```text
-Lobby ──start──> Playing ──all turns complete──> Results
-  ▲                 │                              │
-  └────return───────┴──────────rematch─────────────┘
-```
+The workspace holds the drawing in memory. Clear Drawing requires confirmation;
+cancelling preserves the drawing. Canvas contents are not saved across launches.
+Compact overlays provide local drawing context and the clear action.
 
-The initial reducer implements lobby membership, configuration, start, results, return, and disconnect behavior. Classic turn sequencing will be layered onto the same reducer rather than kept in views.
+## Validation
 
-### Membership invariants
+Build the generic iOS Debug target and compile/run the Mac Catalyst test target.
+The removed online features have no remaining unit tests. Drawing feel and tool
+picker behavior require physical iPad mini checks: fast strokes, palm resting,
+tool/color switching, and clear confirmation.
 
-- `joinOrdinal` is assigned once and never reused within a room.
-- Participant ordering is `joinOrdinal`, then stable participant identifier.
-- There is at most one host.
-- If connected participants exist, the host must be connected.
-- A returning former host does not automatically reclaim host authority.
-- Removing or disconnecting the host increments `hostTerm` and elects the connected participant with the lowest ordering key.
-- Every accepted event increments the room revision exactly once.
+## Project configuration
 
-## Host migration
-
-GameKit real-time matches are peer-to-peer. Each peer retains the last committed room snapshot and applies reliable room events in order. When GameKit reports that the host disconnected, every peer deterministically elects the same successor from the replicated membership list.
-
-The host term prevents messages from a stale host being accepted after migration. Commands in flight during a migration may be rejected and retried against the new term; committed events are never rolled back.
-
-See `docs/decisions/0002-deterministic-host-migration.md`.
-
-## Networking protocol
-
-`RoomEnvelope` is the versioned wire boundary. Every envelope carries:
-
-- Protocol version
-- Room identifier
-- Sender identifier
-- Host term
-- Room revision
-- Message identifier
-- Payload
-
-Delivery classes:
-
-| Payload | Delivery | Reason |
-|---|---|---|
-| Live stroke samples | Unreliable | Newer samples supersede delayed samples |
-| Completed stroke | Reliable | Peers must converge on the final drawing |
-| Guess/chat | Reliable | Ordering and attribution matter |
-| Room/game event | Reliable | All reducers must receive the same event order |
-| Snapshot/recovery | Reliable | Repairs a peer after packet loss or reconnection |
-
-The initial implementation uses JSON `Codable` messages for inspectability. A compact binary encoding is permitted later only after profiling demonstrates a need.
-
-## Drawing architecture
-
-`DrawingCanvasView` is the only PencilKit bridge. PencilKit owns touch/Pencil
-recognition, rendering, and the movable system `PKToolPicker`. The picker uses a
-named local autosave state so a player's last tool setup survives relaunches.
-
-### Canvas real-estate policy
-
-- The canvas consumes the full content region; tools never require a permanent
-  side or bottom rail.
-- Party presence, prompt/timer information, and rare canvas-wide actions occupy
-  compact material overlays at the leading, center, and trailing top edges.
-- Overlay contents may change by game phase, but their zones and interaction
-  priority stay stable so players do not relearn the screen during a timed turn.
-- Apple Pencil, finger, pointer, hardware keyboard, and accessibility input
-  remain supported.
-
-Customizable quick slots and usage-based tool reordering require observed player
-needs and are deferred. Apple's tool picker is the v1 baseline because it is
-movable, familiar, compact, and already handles tool/color configuration.
-
-Network synchronization will transmit normalized vector samples, not screenshots or full-canvas images. A completed stroke is the durable unit. Clear-canvas is a versioned operation so an old stroke packet cannot resurrect erased content.
-
-## Persistence
-
-- PencilKit tool-picker autosave: local tool/color preferences.
-- App bundle / signed remote update: curated word bank.
-- CloudKit: durable public metadata and moderation records only when introduced.
-- Game Center: v1 player identity, friends, invitations, and matchmaking.
-- Live room state: replicated in memory; no single device is its sole owner.
-
-Email/password authentication is intentionally excluded. CloudKit public-database writes require an iCloud-authenticated user and are not a substitute for arbitrary account authentication.
-
-## Current launch flow
-
-`AppRootView` presents `DrawingWorkspaceView` inside a navigation stack. Free Draw
-is the home screen and requires no account or network connection. The root does
-not instantiate `GameCenterCoordinator`; authentication, invitations, and
-matchmaking UI are deferred while the existing adapter remains available for
-future online play. Drawing tools and clear confirmation retain their behavior.
-
-## Game Center boundary
-
-`GameCenterCoordinator` owns local-player authentication, private matchmaker
-presentation, and accepted invitations. UIKit controllers supplied by GameKit
-are presented through a passive SwiftUI bridge; they do not own room state.
-
-An established `GKMatch` remains private to the coordinator until the GameKit
-transport claims it exactly once. The UI observes only framework-independent
-identity and matchmaking states. This keeps GameKit player and match objects out
-of the deterministic room reducer while preserving the match for the next
-networking milestone.
-
-Match requests cap the room at the lower of the domain's seven-player limit and
-GameKit's runtime peer-to-peer limit. `GameCenterParticipantMapper` converts each
-matched player's stable identifier and bounded display name into a `Participant`;
-the host assigns the immutable join ordinal as part of the room handshake.
-
-## Safety and moderation
-
-Before public rooms are enabled, the product must include objectionable-content handling, reporting, blocking, published support contact information, and a review process. Room kicks are immediate room-level protection; they are not sufficient evidence for an account ban by themselves.
-
-## Testing strategy
-
-- Unit tests: reducer transitions, host election, stale-term rejection, scoring, word selection, and turn sequencing.
-- Protocol tests: encode/decode compatibility and malformed/untrusted message rejection.
-- Adapter tests: mocked transports and GameKit integration seams.
-- UI tests: create room, join, draw, guess, host disconnect, finish, and rematch.
-- Device matrix: iPad with Pencil, iPhone with finger, and Mac Catalyst with pointer/keyboard.
-
-## Current implementation status
-
-- [x] Repository collaboration and literate-documentation rules
-- [x] V1 architecture and idea boundary
-- [x] Adaptive local PencilKit/finger drawing surface
-- [x] Pure room reducer with deterministic host migration
-- [x] Game Center authentication and invitation adapter
-- [ ] Real-time GameKit transport
-- [ ] Networked stroke replication
-- [ ] Classic game loop and curated word bank
-- [ ] Guessing, scoring, results, and rematch
-- [ ] Moderation required for external testing
+The existing project still supports iPhone and Mac Catalyst and contains legacy
+Game Center capability/signing configuration. These settings are preserved while
+Matt's local project and shared scheme edits are present. They do not initiate
+Game Center at runtime. iPhone and Mac product work remains deferred.

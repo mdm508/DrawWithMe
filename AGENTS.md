@@ -5,8 +5,8 @@ These rules apply to every human or AI contributor in this repository.
 ## Product boundary
 
 - The current product is a native Apple-platform drawing party game.
-- iPad is the lead experience. iPhone finger drawing and Mac pointer drawing are first-class supported adaptations, not separate products.
-- Game Center is the v1 identity, invitation, and matchmaking system.
+- Current implementation focuses on local Free Draw on iPad. iPhone and Mac product work is deferred.
+- Game Center, networking, and room code are deferred and have been removed from the current implementation.
 - The v1 feature boundary lives in `ARCHITECTURE.md`. Deferred concepts belong in `docs/IDEAS.md` until the project manager promotes them.
 
 ## Architecture is part of the code

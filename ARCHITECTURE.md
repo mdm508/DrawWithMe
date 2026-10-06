@@ -11,10 +11,13 @@ in the historical ADRs and Git history.
 
 ```text
 SwiftUI app shell
-└── Drawing feature
-    ├── DrawingWorkspaceView
-    ├── DrawingCanvasView (PencilKit adapter)
-    └── DrawingSessionHUD
+├── Drawing feature
+│   ├── DrawingWorkspaceView
+│   ├── DrawingCanvasView (PencilKit adapter)
+│   └── DrawingSessionHUD
+└── Guessing rules
+    ├── GuessMatcher (pure domain logic)
+    └── GuessMatch
 ```
 
 `AppRootView` presents the workspace inside a navigation stack. No account,

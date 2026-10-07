@@ -28,11 +28,11 @@ struct PlayerNamesStore {
     func load() -> PlayerNames {
         PlayerNames(
             playerOne: normalized(
-                userDefaults.string(forKey: Keys.playerOne) ?? Self.defaultPlayerOneName,
+                userDefaults.string(forKey: Keys.playerOne) ?? "",
                 fallback: Self.defaultPlayerOneName
             ),
             playerTwo: normalized(
-                userDefaults.string(forKey: Keys.playerTwo) ?? Self.defaultPlayerTwoName,
+                userDefaults.string(forKey: Keys.playerTwo) ?? "",
                 fallback: Self.defaultPlayerTwoName
             )
         )
@@ -75,5 +75,6 @@ private extension PlayerNamesStore {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { return fallback }
         return String(trimmedName.prefix(Self.maximumNameLength))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

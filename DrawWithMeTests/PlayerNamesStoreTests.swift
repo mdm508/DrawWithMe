@@ -53,11 +53,22 @@ final class PlayerNamesStoreTests: XCTestCase {
     /// Long names stop at the ticket's initial twelve-character fit budget.
     func testSaveLimitsNamesToTwelveCharacters() {
         let store = PlayerNamesStore(userDefaults: userDefaults)
-        store.save(PlayerNames(playerOne: "abcdefghijklmnop", playerTwo: "1234567890123"))
+        store.save(PlayerNames(playerOne: "abcdefghijklmnop", playerTwo: "Christopher Robin"))
 
         XCTAssertEqual(
             store.load(),
-            PlayerNames(playerOne: "abcdefghijkl", playerTwo: "123456789012")
+            PlayerNames(playerOne: "abcdefghijkl", playerTwo: "Christopher")
+        )
+    }
+
+    /// Loading legacy or interrupted values still enforces defaults and length.
+    func testLoadNormalizesValuesStoredOutsideTheStore() {
+        userDefaults.set(" \n ", forKey: "playerNames.playerOne")
+        userDefaults.set("123456789012345", forKey: "playerNames.playerTwo")
+
+        XCTAssertEqual(
+            PlayerNamesStore(userDefaults: userDefaults).load(),
+            PlayerNames(playerOne: "Player 1", playerTwo: "123456789012")
         )
     }
 }

@@ -19,6 +19,7 @@ Before starting, read two cards on it: "READ FIRST: how this board works" and "W
 - Branch from the base branch named on the card "Repo, branches, and PR stack". One ticket, one branch, one PR, opened ready for review and not as a draft. No stacked PRs. Start the PR description with "Trello: " and the card's short link.
 - Handoffs and reviews are comments on the pull request, not on the Trello card. Start each one with who sent it and its type, for example "Z: HANDOFF ...". Questions for Matt go on the card.
 - Never merge or close a PR. Claude merges a ticket PR into the base branch after an Approved review and a passing "Build and test" check. Matt lands the base branch on main.
+- Do not review or approve PRs that Claude writes itself. Matt reviews and merges those.
 - After a review that requests changes, fix them, push, and post a new HANDOFF. Do not push after a HANDOFF while you wait for the review.
 - Documentation is Claude's job, not yours. Write clear names and working, tested code. You do not need to add `///` comments or update `ARCHITECTURE.md` and `docs/decisions/`; Claude does that during review, in commits titled "review: ...". In your HANDOFF, mention any new boundary, state transition, or invariant so Claude knows what to document.
 - Claude may push commits to your PR branch: documentation, and small fixes that let the PR merge without another round. Before you push to a branch that is in review or that Claude has touched, pull it first. Never rewrite or force-push over Claude's commits.

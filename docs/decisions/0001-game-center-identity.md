@@ -1,6 +1,6 @@
 # ADR 0001: Use Game Center identity for v1
 
-- Status: Accepted
+- Status: Historical; deferred from the current Free Draw implementation
 - Date: 2026-09-19
 
 ## Context

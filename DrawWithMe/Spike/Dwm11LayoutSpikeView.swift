@@ -2,7 +2,7 @@ import PencilKit
 import SwiftUI
 
 struct Dwm11LayoutSpikeView: View {
-    @State private var drawing = PKDrawing()
+    @State private var drawing = Self.sampleDrawing()
     @State private var drawerIsAtTop = false
     @State private var secretWordIsHidden = false
     @State private var typedGuess = ""
@@ -142,17 +142,47 @@ struct Dwm11LayoutSpikeView: View {
             HStack {
                 Text("GUESSER · PLAYER 2")
                     .font(.caption.weight(.bold))
-                Spacer()
-                Text("mirrored drawing · live")
+                Label("Live mirror", systemImage: "arrow.triangle.2.circlepath")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+                Spacer()
+                Button("Clear drawing") {
+                    drawing = PKDrawing()
+                }
+                .font(.caption2.weight(.semibold))
+                .frame(minHeight: 44)
             }
-            .frame(minHeight: 28)
+            .frame(minHeight: 44)
         }
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(red: 0.88, green: 0.91, blue: 0.93))
         .rotationEffect(.degrees(rotated ? 180 : 0))
+    }
+
+    private static func sampleDrawing() -> PKDrawing {
+        let strokes: [[CGPoint]] = [
+            [CGPoint(x: 90, y: 180), CGPoint(x: 120, y: 215), CGPoint(x: 160, y: 150), CGPoint(x: 205, y: 85)],
+            [CGPoint(x: 235, y: 95), CGPoint(x: 275, y: 75), CGPoint(x: 310, y: 100), CGPoint(x: 300, y: 135)],
+            [CGPoint(x: 80, y: 250), CGPoint(x: 180, y: 250), CGPoint(x: 320, y: 250)]
+        ]
+        let colors: [UIColor] = [.systemPink, .systemBlue, .systemGreen]
+
+        return PKDrawing(strokes: zip(strokes, colors).map { points, color in
+            let controlPoints = points.enumerated().map { index, location in
+                PKStrokePoint(
+                    location: location,
+                    timeOffset: Double(index) * 0.08,
+                    size: CGSize(width: 10, height: 10),
+                    opacity: 1,
+                    force: 1,
+                    azimuth: 0,
+                    altitude: .pi / 2
+                )
+            }
+            let path = PKStrokePath(controlPoints: controlPoints, creationDate: Date())
+            return PKStroke(ink: PKInk(.pen, color: color), path: path)
+        })
     }
 }
 

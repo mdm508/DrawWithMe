@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - codex/m1-same-tablet
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 26.5
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.5.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Build iOS Debug
+        run: |
+          xcodebuild -quiet \
+            -project DrawWithMe.xcodeproj \
+            -scheme DrawWithMe \
+            -configuration Debug \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/DrawWithMeDerived" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Test Mac Catalyst
+        run: |
+          xcodebuild -quiet \
+            -project DrawWithMe.xcodeproj \
+            -scheme DrawWithMe \
+            -configuration Debug \
+            -destination 'platform=macOS,variant=Mac Catalyst' \
+            -derivedDataPath "$RUNNER_TEMP/DrawWithMeDerived" \
+            -resultBundlePath "$RUNNER_TEMP/DrawWithMeCatalyst.xcresult" \
+            CODE_SIGNING_ALLOWED=NO \
+            test
+
+      - name: Upload Catalyst test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalyst-test-results
+          path: ${{ runner.temp }}/DrawWithMeCatalyst.xcresult
+          if-no-files-found: ignore

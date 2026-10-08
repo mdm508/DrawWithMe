@@ -14,13 +14,15 @@
 enum GuessMatcher {
     /// The greatest Levenshtein distance that still counts as a close guess.
     ///
-    /// Matt's rule is a limit of 2 for every word length.
-    /// - Attention: 2 is generous for short words. `"cow"` is close to `"cat"`
-    ///   and `"at"` is close to `"cat"`. That is intended for now, and the
-    ///   playtest (dwm28) is the place to learn if it feels too forgiving.
-    /// - Note: Plurals fall out of this rule for free (`"boxes"` against `"box"`
-    ///   is distance 2), so there is no separate plural handling.
-    static let maximumCloseGuessEditDistance = 2
+    /// Matt's rule is a limit of 1 for every word length.
+    /// - Attention: A one-edit limit still makes `"at"` close to `"cat"`, but
+    ///   `"cow"` is no longer close to `"cat"`. The playtest (dwm28) can show
+    ///   whether this is the right balance for short words.
+    /// - Note: A plural with one added letter, such as `"cats"` against
+    ///   `"cat"`, is close under this rule. An `"es"` plural such as `"boxes"`
+    ///   against `"box"` needs two edits and is wrong; no separate plural rule
+    ///   is applied.
+    static let maximumCloseGuessEditDistance = 1
 
     /// Classifies one guess against the secret word.
     ///
@@ -30,11 +32,12 @@ enum GuessMatcher {
     /// - Parameters:
     ///   - secret: The word being drawn, lowercase.
     ///   - guess: What the guesser typed, lowercase.
-    /// - Returns: `.correct` for an exact match, `.close` when the two words are
-    ///   within `maximumCloseGuessEditDistance` edits, otherwise `.wrong`.
+    /// - Returns: `.correct` for an exact match, `.close` when the words are
+    ///   within the `maximumCloseGuessEditDistance` edit limit, otherwise `.wrong`.
     ///
-    /// - Example: `"house"` against `"horse"` is `.close`, `"box"` against
-    ///   `"boxes"` is `.close`, and `"cat"` against `"dog"` is `.wrong`.
+    /// - Example: `"house"` against `"horse"` and `"cat"` against `"cats"`
+    ///   are `.close`; `"box"` against `"boxes"` and `"cat"` against `"dog"`
+    ///   are `.wrong`.
     static func classify(secret: String, guess: String) -> GuessMatch {
         guard secret != guess else { return .correct }
         guard levenshteinDistance(secret, guess) <= maximumCloseGuessEditDistance else {

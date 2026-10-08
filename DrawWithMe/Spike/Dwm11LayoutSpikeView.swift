@@ -1,25 +1,41 @@
 import PencilKit
 import SwiftUI
+import UIKit
 
 struct Dwm11LayoutSpikeView: View {
     @State private var drawing = Self.sampleDrawing()
+    @State private var selectedColorID = "red"
     @State private var drawerIsAtTop = false
     @State private var secretWordIsHidden = false
     @State private var typedGuess = ""
     @State private var recentGuesses = ["planit", "plant", "planet"]
+    @State private var canvasViewport = CGSize(width: 560, height: 300)
+
+    private let playerGap: CGFloat = 52
+    private let palette = PaletteColor.standardSet
+
+    private var selectedInkColor: UIColor {
+        palette.first(where: { $0.id == selectedColorID })?.uiColor ?? .systemRed
+    }
 
     var body: some View {
         GeometryReader { geometry in
+            let paneHeight = max(0, (geometry.size.height - playerGap) / 2)
+
             ZStack {
                 VStack(spacing: 0) {
                     if drawerIsAtTop {
                         drawerHalf(rotated: true)
-                        Divider()
+                            .frame(height: paneHeight)
+                        playerSeparator
                         guesserHalf(rotated: false)
+                            .frame(height: paneHeight)
                     } else {
                         guesserHalf(rotated: true)
-                        Divider()
+                            .frame(height: paneHeight)
+                        playerSeparator
                         drawerHalf(rotated: false)
+                            .frame(height: paneHeight)
                     }
                 }
 
@@ -35,11 +51,22 @@ struct Dwm11LayoutSpikeView: View {
                         .background(.regularMaterial, in: Capsule())
                 }
                 .accessibilityHint("Moves the active PencilKit canvas to the opposite half")
-                .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                .position(x: geometry.size.width / 2, y: paneHeight + playerGap / 2)
             }
             .background(Color(red: 0.96, green: 0.95, blue: 0.91))
         }
         .background(Color(red: 0.96, green: 0.95, blue: 0.91))
+    }
+
+    private var playerSeparator: some View {
+        Rectangle()
+            .fill(Color(red: 0.96, green: 0.95, blue: 0.91))
+            .overlay(alignment: .center) {
+                Capsule()
+                    .fill(.black.opacity(0.08))
+                    .frame(width: 72, height: 1)
+            }
+            .frame(height: playerGap)
     }
 
     private func drawerHalf(rotated: Bool) -> some View {
@@ -48,6 +75,8 @@ struct Dwm11LayoutSpikeView: View {
                 Label("DRAWER · PLAYER 1", systemImage: "pencil.tip.crop.circle")
                     .font(.caption.weight(.bold))
                 Spacer()
+                Label("Medium pen", systemImage: "pencil.tip")
+                    .font(.caption2.weight(.semibold))
                 Text("01:00")
                     .font(.caption.monospacedDigit().weight(.semibold))
             }
@@ -71,14 +100,44 @@ struct Dwm11LayoutSpikeView: View {
                 secretWordIsHidden.toggle()
             }
 
-            DrawingCanvasView(drawing: $drawing)
-                .background(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(.black.opacity(0.12), lineWidth: 1)
+            GeometryReader { toolsArea in
+                HStack(spacing: 6) {
+                    colorRail(colors: Array(palette.prefix(4)))
+
+                    GeometryReader { canvasArea in
+                        SpikeDrawingCanvasView(drawing: $drawing, inkColor: selectedInkColor)
+                            .onAppear { canvasViewport = canvasArea.size }
+                            .onChange(of: canvasArea.size) { _, size in
+                                canvasViewport = size
+                            }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .background(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(.black.opacity(0.12), lineWidth: 1)
+                    }
+
+                    VStack(spacing: 6) {
+                        Button {
+                            drawing = PKDrawing()
+                        } label: {
+                            Text("💣")
+                                .font(.system(size: 24))
+                                .foregroundStyle(.red)
+                                .frame(minWidth: 44, minHeight: 44)
+                                .background(.white, in: RoundedRectangle(cornerRadius: 10))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Clear all drawing")
+                        .accessibilityHint("Removes the drawing from both player views")
+
+                        colorRail(colors: Array(palette.suffix(4)))
+                    }
                 }
-                .id(rotated)
+                .frame(width: toolsArea.size.width, height: toolsArea.size.height)
+            }
         }
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -86,14 +145,76 @@ struct Dwm11LayoutSpikeView: View {
         .rotationEffect(.degrees(rotated ? 180 : 0))
     }
 
-    private func guesserHalf(rotated: Bool) -> some View {
-        VStack(spacing: 6) {
-            GuessKeyboard(typedGuess: $typedGuess) {
-                guard !typedGuess.isEmpty else { return }
-                recentGuesses.insert(typedGuess, at: 0)
-                recentGuesses = Array(recentGuesses.prefix(3))
-                typedGuess = ""
+    private func colorRail(colors: [PaletteColor]) -> some View {
+        VStack(spacing: 4) {
+            ForEach(colors) { color in
+                Button {
+                    selectedColorID = color.id
+                } label: {
+                    Circle()
+                        .fill(color.swiftUIColor)
+                        .frame(width: 28, height: 28)
+                        .overlay {
+                            Circle()
+                                .stroke(.white, lineWidth: selectedColorID == color.id ? 3 : 0)
+                                .padding(2)
+                        }
+                        .overlay {
+                            Circle()
+                                .stroke(.black.opacity(0.28), lineWidth: 1)
+                        }
+                        .frame(width: 40, height: 40)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(color.name) pen color")
+                .accessibilityAddTraits(selectedColorID == color.id ? .isSelected : [])
             }
+        }
+        .frame(width: 42)
+    }
+
+    private func guesserHalf(rotated: Bool) -> some View {
+        VStack(spacing: 4) {
+            HStack {
+                Text("GUESSER · PLAYER 2")
+                    .font(.caption.weight(.bold))
+                Spacer()
+                Label("Live mirror", systemImage: "arrow.triangle.2.circlepath")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(minHeight: 22)
+
+            HStack(spacing: 8) {
+                Text("HINT")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.secondary)
+                Text("_ _ _ _ _ _ _ _")
+                    .font(.headline.monospaced())
+                    .tracking(2)
+                Spacer()
+                Text("GUESSES")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(minHeight: 24)
+
+            HStack(spacing: 6) {
+                ForEach(Array(recentGuesses.prefix(3).enumerated()), id: \.offset) { index, guess in
+                    Text(guess)
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                        .padding(.horizontal, 10)
+                        .frame(minHeight: 28)
+                        .background(index == 0 ? Color.yellow.opacity(0.45) : .white,
+                                    in: Capsule())
+                }
+                Spacer(minLength: 0)
+            }
+
+            DrawingMirror(drawing: drawing, viewport: canvasViewport)
+                .frame(maxWidth: .infinity)
+                .frame(height: 112)
 
             HStack(spacing: 8) {
                 Text(typedGuess.isEmpty ? "type your guess" : typedGuess)
@@ -108,53 +229,14 @@ struct Dwm11LayoutSpikeView: View {
             .padding(.horizontal, 12)
             .background(.white, in: RoundedRectangle(cornerRadius: 10))
 
-            HStack(spacing: 8) {
-                Text("HINT")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.secondary)
-                Text("_ _ _ _ _ _ _ _")
-                    .font(.headline.monospaced())
-                    .tracking(2)
-                Spacer()
-                Text("GUESSES")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.secondary)
+            GuessKeyboard(typedGuess: $typedGuess) {
+                guard !typedGuess.isEmpty else { return }
+                recentGuesses.insert(typedGuess, at: 0)
+                recentGuesses = Array(recentGuesses.prefix(3))
+                typedGuess = ""
             }
-            .frame(minHeight: 28)
-
-            HStack(spacing: 6) {
-                ForEach(Array(recentGuesses.prefix(3).enumerated()), id: \.offset) { index, guess in
-                    Text(guess)
-                        .font(.caption.weight(.semibold))
-                        .lineLimit(1)
-                        .padding(.horizontal, 10)
-                        .frame(minHeight: 30)
-                        .background(index == 0 ? Color.yellow.opacity(0.45) : .white,
-                                    in: Capsule())
-                }
-                Spacer(minLength: 0)
-            }
-
-            DrawingMirror(drawing: drawing)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .frame(minHeight: 62, maxHeight: 104)
-
-            HStack {
-                Text("GUESSER · PLAYER 2")
-                    .font(.caption.weight(.bold))
-                Label("Live mirror", systemImage: "arrow.triangle.2.circlepath")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button("Clear drawing") {
-                    drawing = PKDrawing()
-                }
-                .font(.caption2.weight(.semibold))
-                .frame(minHeight: 44)
-            }
-            .frame(minHeight: 44)
         }
-        .padding(12)
+        .padding(8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(red: 0.88, green: 0.91, blue: 0.93))
         .rotationEffect(.degrees(rotated ? 180 : 0))
@@ -162,9 +244,9 @@ struct Dwm11LayoutSpikeView: View {
 
     private static func sampleDrawing() -> PKDrawing {
         let strokes: [[CGPoint]] = [
-            [CGPoint(x: 90, y: 180), CGPoint(x: 120, y: 215), CGPoint(x: 160, y: 150), CGPoint(x: 205, y: 85)],
-            [CGPoint(x: 235, y: 95), CGPoint(x: 275, y: 75), CGPoint(x: 310, y: 100), CGPoint(x: 300, y: 135)],
-            [CGPoint(x: 80, y: 250), CGPoint(x: 180, y: 250), CGPoint(x: 320, y: 250)]
+            [CGPoint(x: 190, y: 180), CGPoint(x: 225, y: 215), CGPoint(x: 270, y: 150), CGPoint(x: 315, y: 85)],
+            [CGPoint(x: 345, y: 95), CGPoint(x: 385, y: 75), CGPoint(x: 420, y: 100), CGPoint(x: 410, y: 135)],
+            [CGPoint(x: 180, y: 250), CGPoint(x: 280, y: 250), CGPoint(x: 420, y: 250)]
         ]
         let colors: [UIColor] = [.systemPink, .systemBlue, .systemGreen]
 
@@ -186,31 +268,112 @@ struct Dwm11LayoutSpikeView: View {
     }
 }
 
+private struct PaletteColor: Identifiable {
+    let id: String
+    let name: String
+    let red: CGFloat
+    let green: CGFloat
+    let blue: CGFloat
+
+    var uiColor: UIColor {
+        UIColor(red: red, green: green, blue: blue, alpha: 1)
+    }
+
+    var swiftUIColor: Color { Color(uiColor) }
+
+    static let standardSet = [
+        PaletteColor(id: "red", name: "Red", red: 0.91, green: 0.12, blue: 0.15),
+        PaletteColor(id: "orange", name: "Orange", red: 1.00, green: 0.48, blue: 0.08),
+        PaletteColor(id: "yellow", name: "Yellow", red: 1.00, green: 0.86, blue: 0.08),
+        PaletteColor(id: "green", name: "Green", red: 0.12, green: 0.62, blue: 0.28),
+        PaletteColor(id: "blue", name: "Blue", red: 0.08, green: 0.39, blue: 0.83),
+        PaletteColor(id: "violet", name: "Violet", red: 0.45, green: 0.20, blue: 0.63),
+        PaletteColor(id: "brown", name: "Brown", red: 0.48, green: 0.28, blue: 0.15),
+        PaletteColor(id: "black", name: "Black", red: 0.08, green: 0.08, blue: 0.09)
+    ]
+}
+
 private struct DrawingMirror: View {
     let drawing: PKDrawing
+    let viewport: CGSize
 
     var body: some View {
-        Group {
-            if drawing.bounds.isEmpty {
-                ZStack {
-                    Color.white
-                    Text("DRAWING PREVIEW")
+        GeometryReader { geometry in
+            ZStack {
+                Color.white
+                if drawing.bounds.isEmpty {
+                    Text("Draw above to see the live mirror")
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(.secondary)
-                }
-            } else {
-                Image(uiImage: drawing.image(from: drawing.bounds, scale: 0.35))
+                } else if viewport.width > 0, viewport.height > 0 {
+                    Image(uiImage: drawing.image(
+                        from: CGRect(origin: .zero, size: viewport),
+                        scale: 1
+                    ))
                     .resizable()
                     .scaledToFit()
-                    .background(.white)
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay {
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(.black.opacity(0.12), lineWidth: 1)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay {
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(.black.opacity(0.12), lineWidth: 1)
+        .accessibilityLabel("Live drawing preview at a fixed size")
+    }
+}
+
+private struct SpikeDrawingCanvasView: UIViewRepresentable {
+    @Binding var drawing: PKDrawing
+    let inkColor: UIColor
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(drawing: $drawing)
+    }
+
+    func makeUIView(context: Context) -> PKCanvasView {
+        let canvas = PKCanvasView()
+        canvas.backgroundColor = .white
+        canvas.delegate = context.coordinator
+        canvas.tool = PKInkingTool(.pen, color: inkColor, width: 7)
+        canvas.drawingPolicy = .anyInput
+        canvas.isScrollEnabled = false
+        canvas.alwaysBounceHorizontal = false
+        canvas.alwaysBounceVertical = false
+        canvas.minimumZoomScale = 1
+        canvas.maximumZoomScale = 1
+        canvas.isOpaque = true
+        canvas.overrideUserInterfaceStyle = .light
+        return canvas
+    }
+
+    func updateUIView(_ canvas: PKCanvasView, context: Context) {
+        let currentTool = canvas.tool as? PKInkingTool
+        if currentTool?.color != inkColor || currentTool?.width != 7 {
+            canvas.tool = PKInkingTool(.pen, color: inkColor, width: 7)
         }
-        .accessibilityLabel("Live drawing preview")
+        guard canvas.drawing.dataRepresentation() != drawing.dataRepresentation() else {
+            return
+        }
+        context.coordinator.isApplyingExternalDrawing = true
+        canvas.drawing = drawing
+        context.coordinator.isApplyingExternalDrawing = false
+    }
+
+    final class Coordinator: NSObject, PKCanvasViewDelegate {
+        @Binding private var drawing: PKDrawing
+        var isApplyingExternalDrawing = false
+
+        init(drawing: Binding<PKDrawing>) {
+            _drawing = drawing
+        }
+
+        func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
+            guard !isApplyingExternalDrawing else { return }
+            drawing = canvasView.drawing
+        }
     }
 }
 
@@ -228,11 +391,13 @@ private struct GuessKeyboard: View {
                         key(character)
                     }
                     if row.count == 7 {
-                        Button("⌫") { if !typedGuess.isEmpty { typedGuess.removeLast() } }
-                            .font(.caption.weight(.bold))
-                            .frame(minWidth: 44, minHeight: 44)
-                            .background(.white, in: RoundedRectangle(cornerRadius: 7))
-                            .accessibilityLabel("Delete last character")
+                        Button("⌫") {
+                            if !typedGuess.isEmpty { typedGuess.removeLast() }
+                        }
+                        .font(.caption.weight(.bold))
+                        .frame(minWidth: 44, minHeight: 44)
+                        .background(.white, in: RoundedRectangle(cornerRadius: 7))
+                        .accessibilityLabel("Delete last character")
                     }
                 }
             }

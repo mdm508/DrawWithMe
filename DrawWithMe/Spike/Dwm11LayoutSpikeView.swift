@@ -174,71 +174,65 @@ struct Dwm11LayoutSpikeView: View {
     }
 
     private func guesserHalf(rotated: Bool) -> some View {
-        VStack(spacing: 4) {
-            HStack {
-                Text("GUESSER · PLAYER 2")
-                    .font(.caption.weight(.bold))
-                Spacer()
-                Label("Live mirror", systemImage: "arrow.triangle.2.circlepath")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(minHeight: 22)
+        GeometryReader { geometry in
+            let compactKeyboardHeight: CGFloat = 92
+            let fixedContentHeight: CGFloat = 22 + 28 + 38 + compactKeyboardHeight + 20
+            let previewAreaHeight = min(
+                geometry.size.height * 0.5,
+                max(0, geometry.size.height - fixedContentHeight)
+            )
+            let aspectRatio = canvasViewport.width / max(canvasViewport.height, 1)
+            let previewWidth = min(geometry.size.width - 16, previewAreaHeight * aspectRatio)
+            let previewHeight = previewWidth / max(aspectRatio, 0.1)
 
-            HStack(spacing: 8) {
-                Text("HINT")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.secondary)
-                Text("_ _ _ _ _ _ _ _")
-                    .font(.headline.monospaced())
-                    .tracking(2)
-                Spacer()
-                Text("GUESSES")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.secondary)
-            }
-            .frame(minHeight: 24)
-
-            HStack(spacing: 6) {
-                ForEach(Array(recentGuesses.prefix(3).enumerated()), id: \.offset) { index, guess in
-                    Text(guess)
-                        .font(.caption.weight(.semibold))
-                        .lineLimit(1)
-                        .padding(.horizontal, 10)
-                        .frame(minHeight: 28)
-                        .background(index == 0 ? Color.yellow.opacity(0.45) : .white,
-                                    in: Capsule())
+            VStack(spacing: 3) {
+                HStack {
+                    Text("GUESSER · PLAYER 2")
+                        .font(.caption.weight(.bold))
+                    Spacer()
+                    Label("Live mirror", systemImage: "arrow.triangle.2.circlepath")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
-                Spacer(minLength: 0)
-            }
+                .frame(minHeight: 22)
 
-            DrawingMirror(drawing: drawing, viewport: canvasViewport)
-                .frame(maxWidth: .infinity)
-                .frame(height: 112)
+                HStack(spacing: 6) {
+                    ForEach(Array(recentGuesses.prefix(3).enumerated()), id: \.offset) { index, guess in
+                        Text(guess)
+                            .font(.caption.weight(.semibold))
+                            .lineLimit(1)
+                            .padding(.horizontal, 10)
+                            .frame(minHeight: 28)
+                            .background(index == 0 ? Color.yellow.opacity(0.45) : .white,
+                                        in: Capsule())
+                    }
+                    Spacer(minLength: 0)
+                }
 
-            HStack(spacing: 8) {
-                Text(typedGuess.isEmpty ? "type your guess" : typedGuess)
-                    .font(.body.weight(.medium))
+                DrawingMirror(drawing: drawing, viewport: canvasViewport)
+                    .frame(width: previewWidth, height: previewHeight)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                Text(typedGuess.isEmpty ? "_ _ _ _ _ _ _ _" : typedGuess)
+                    .font(.body.weight(.medium).monospaced())
+                    .tracking(typedGuess.isEmpty ? 2 : 0)
                     .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Button("Clear") { typedGuess = "" }
-                    .font(.caption.weight(.semibold))
-                    .frame(minWidth: 44, minHeight: 44)
-                    .accessibilityLabel("Clear guess")
-            }
-            .padding(.horizontal, 12)
-            .background(.white, in: RoundedRectangle(cornerRadius: 10))
+                    .frame(maxWidth: .infinity, minHeight: 38)
+                    .background(.white, in: RoundedRectangle(cornerRadius: 10))
+                    .accessibilityLabel(typedGuess.isEmpty ? "Hint: eight letters" : "Guess: \(typedGuess)")
 
-            GuessKeyboard(typedGuess: $typedGuess) {
-                guard !typedGuess.isEmpty else { return }
-                recentGuesses.insert(typedGuess, at: 0)
-                recentGuesses = Array(recentGuesses.prefix(3))
-                typedGuess = ""
+                GuessKeyboard(typedGuess: $typedGuess) {
+                    guard !typedGuess.isEmpty else { return }
+                    recentGuesses.insert(typedGuess, at: 0)
+                    recentGuesses = Array(recentGuesses.prefix(3))
+                    typedGuess = ""
+                }
+                .frame(height: compactKeyboardHeight)
             }
+            .padding(8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(red: 0.88, green: 0.91, blue: 0.93))
         }
-        .padding(8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(red: 0.88, green: 0.91, blue: 0.93))
         .rotationEffect(.degrees(rotated ? 180 : 0))
     }
 
@@ -384,34 +378,25 @@ private struct GuessKeyboard: View {
     private let rows = [Array("qwertyuiop"), Array("asdfghjkl"), Array("zxcvbnm")]
 
     var body: some View {
-        VStack(spacing: 4) {
-            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+        VStack(spacing: 2) {
+            ForEach(Array(rows.dropLast().enumerated()), id: \.offset) { _, row in
                 HStack(spacing: 4) {
                     ForEach(row, id: \.self) { character in
                         key(character)
-                    }
-                    if row.count == 7 {
-                        Button("⌫") {
-                            if !typedGuess.isEmpty { typedGuess.removeLast() }
-                        }
-                        .font(.caption.weight(.bold))
-                        .frame(minWidth: 44, minHeight: 44)
-                        .background(.white, in: RoundedRectangle(cornerRadius: 7))
-                        .accessibilityLabel("Delete last character")
                     }
                 }
             }
 
             HStack(spacing: 4) {
-                Button("Space") { typedGuess.append(" ") }
-                    .frame(width: 72, height: 44)
+                ForEach(rows.last ?? [], id: \.self) { character in
+                    key(character)
+                }
                 Button("Submit", action: submit)
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .font(.system(size: 10, weight: .bold))
+                    .frame(maxWidth: .infinity, minHeight: 26)
+                    .background(.white, in: RoundedRectangle(cornerRadius: 5))
                     .disabled(typedGuess.isEmpty)
             }
-            .font(.caption)
-            .background(.white, in: RoundedRectangle(cornerRadius: 7))
         }
         .buttonStyle(.plain)
     }
@@ -419,9 +404,9 @@ private struct GuessKeyboard: View {
     private func key(_ character: Character) -> some View {
         let title = String(character)
         return Button(title, action: { typedGuess.append(character) })
-            .font(.system(size: 16, weight: .semibold))
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .background(.white, in: RoundedRectangle(cornerRadius: 7))
+            .font(.system(size: 12, weight: .semibold))
+            .frame(maxWidth: .infinity, minHeight: 26)
+            .background(.white, in: RoundedRectangle(cornerRadius: 5))
             .accessibilityLabel(title)
     }
 }

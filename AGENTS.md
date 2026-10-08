@@ -20,10 +20,14 @@ Before starting, read two cards on it: "READ FIRST: how this board works" and "W
 - Handoffs and reviews are comments on the pull request, not on the Trello card. Start each one with who sent it and its type, for example "Z: HANDOFF ...". Questions for Matt go on the card.
 - Never merge or close a PR. Claude merges a ticket PR into the base branch after an Approved review and a passing "Build and test" check. Matt lands the base branch on main.
 - After a review that requests changes, fix them, push, and post a new HANDOFF. Do not push after a HANDOFF while you wait for the review.
+- Documentation is Claude's job, not yours. Write clear names and working, tested code. You do not need to add `///` comments or update `ARCHITECTURE.md` and `docs/decisions/`; Claude does that during review, in commits titled "review: ...". In your HANDOFF, mention any new boundary, state transition, or invariant so Claude knows what to document.
+- Claude may push commits to your PR branch: documentation, and small fixes that let the PR merge without another round. Before you push to a branch that is in review or that Claude has touched, pull it first. Never rewrite or force-push over Claude's commits.
 - Ask before changing architecture, adding a dependency, or touching signing or entitlements.
 - Never touch Matt's local changes to project.pbxproj, the shared scheme, or .DS_Store files.
 
 ## Architecture is part of the code
+
+Claude keeps the architecture documents current. The rules below say what they must cover.
 
 - Update `ARCHITECTURE.md` in the same change whenever a component boundary, state transition, network message, persistence rule, or platform assumption changes.
 - Record durable architectural decisions in `docs/decisions/`.
@@ -31,6 +35,8 @@ Before starting, read two cards on it: "READ FIRST: how this board works" and "W
 - Do not couple game rules directly to GameKit, PencilKit, or SwiftUI.
 
 ## Literate Swift
+
+Claude writes and maintains the documentation comments, following these rules. The coding agent may add comments but is not required to.
 
 - Use Xcode markup documentation comments (`///`) for every type and for non-obvious methods, state transitions, and invariants.
 - Explain *why* a rule exists and which invariant it protects. Do not narrate syntax.

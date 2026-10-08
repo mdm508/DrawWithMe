@@ -11,14 +11,15 @@ These rules apply to every human or AI contributor in this repository.
 
 ## Workflow
 
-Tickets, reviews, and status live on the Trello board "Draw With Me": https://trello.com/b/9taMj4X8/draw-with-me
+Tickets and status live on the Trello board "Draw With Me": https://trello.com/b/9taMj4X8/draw-with-me
 Before starting, read two cards on it: "READ FIRST: how this board works" and "Workflow: tickets, PRs, reviews". The process is defined there, not here, so the two cannot drift apart. The rules that matter most:
 
 - Work only from the Ready list, top eligible card first, one ticket at a time.
 - No card, no PR. If Matt asks for something directly, make the card first.
-- Branch from the base branch named on the card "Repo, branches, and PR stack". One ticket, one branch, one draft PR. No stacked PRs.
-- Start every Trello comment with its type and "from Agent", for example "HANDOFF from Agent: ...".
-- Never merge or close a PR. Matt merges.
+- Branch from the base branch named on the card "Repo, branches, and PR stack". One ticket, one branch, one PR, opened ready for review and not as a draft. No stacked PRs. Start the PR description with "Trello: " and the card's short link.
+- Handoffs and reviews are comments on the pull request, not on the Trello card. Start each one with who sent it and its type, for example "Z: HANDOFF ...". Questions for Matt go on the card.
+- Never merge or close a PR. Claude merges a ticket PR into the base branch after an Approved review and a passing "Build and test" check. Matt lands the base branch on main.
+- After a review that requests changes, fix them, push, and post a new HANDOFF. Do not push after a HANDOFF while you wait for the review.
 - Ask before changing architecture, adding a dependency, or touching signing or entitlements.
 - Never touch Matt's local changes to project.pbxproj, the shared scheme, or .DS_Store files.
 

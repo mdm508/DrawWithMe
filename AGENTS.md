@@ -5,7 +5,8 @@ These rules apply to every human or AI contributor in this repository.
 ## Product boundary
 
 - The current product is a native Apple-platform drawing party game.
-- Current implementation focuses on local Free Draw on iPad. iPhone and Mac product work is deferred.
+- V1 is iPad only. The current milestone (M1) is a two player game on one iPad mini, played across a table in portrait. iPhone and Mac come later as separate apps that share code through packages.
+- The current implementation is local Free Draw on iPad plus the first M1 rules. ADR 0003 records how the M1 game is built.
 - Game Center, networking, and room code are deferred and have been removed from the current implementation.
 - The v1 feature boundary lives in `ARCHITECTURE.md`. Deferred concepts belong in `docs/IDEAS.md` until the project manager promotes them.
 

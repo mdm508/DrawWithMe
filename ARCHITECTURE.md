@@ -11,14 +11,23 @@ in the historical ADRs and Git history.
 
 ```text
 SwiftUI app shell
-└── Drawing feature
-    ├── DrawingWorkspaceView
-    ├── DrawingCanvasView (PencilKit adapter)
-    └── DrawingSessionHUD
+├── Drawing feature
+│   ├── DrawingWorkspaceView
+│   ├── DrawingCanvasView (PencilKit adapter)
+│   └── DrawingSessionHUD
+└── Guessing rules
+    ├── GuessMatcher (pure domain logic)
+    └── GuessMatch
 ```
 
 `AppRootView` presents the workspace inside a navigation stack. No account,
 authentication, or network connection is required.
+
+Guessing uses the framework-independent `GuessMatcher`. It compares lowercase
+words: exact matches are correct, guesses within one insertion, deletion, or
+substitution are close, and all others are wrong. A one-letter plural such as
+`cats` for `cat` is close; plurals requiring two edits, such as `boxes` for
+`box`, are wrong. A close result never reveals matching letters.
 
 ## Drawing
 

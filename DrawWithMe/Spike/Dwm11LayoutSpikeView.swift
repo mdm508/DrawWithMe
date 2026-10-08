@@ -5,10 +5,8 @@ import UIKit
 struct Dwm11LayoutSpikeView: View {
     @State private var drawing = Self.sampleDrawing()
     @State private var selectedColorID = "red"
-    @State private var drawerIsAtTop = false
     @State private var secretWordIsHidden = false
     @State private var typedGuess = ""
-    @State private var recentGuesses = ["planit", "plant", "planet"]
     @State private var canvasViewport = CGSize(width: 560, height: 300)
 
     private let playerGap: CGFloat = 52
@@ -18,40 +16,26 @@ struct Dwm11LayoutSpikeView: View {
         palette.first(where: { $0.id == selectedColorID })?.uiColor ?? .systemRed
     }
 
+    private var hintWithTypedLetters: String {
+        let enteredLetters = Array(typedGuess)
+        let hintLength = max(9, enteredLetters.count)
+        return (0..<hintLength)
+            .map { index in index < enteredLetters.count ? String(enteredLetters[index]) : "_" }
+            .joined(separator: " ")
+    }
+
     var body: some View {
         GeometryReader { geometry in
             let paneHeight = max(0, (geometry.size.height - playerGap) / 2)
 
             ZStack {
                 VStack(spacing: 0) {
-                    if drawerIsAtTop {
-                        drawerHalf(rotated: true)
-                            .frame(height: paneHeight)
-                        playerSeparator
-                        guesserHalf(rotated: false)
-                            .frame(height: paneHeight)
-                    } else {
-                        guesserHalf(rotated: true)
-                            .frame(height: paneHeight)
-                        playerSeparator
-                        drawerHalf(rotated: false)
-                            .frame(height: paneHeight)
-                    }
+                    guesserHalf(rotated: true)
+                        .frame(height: paneHeight)
+                    playerSeparator
+                    drawerHalf(rotated: false)
+                        .frame(height: paneHeight)
                 }
-
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        drawerIsAtTop.toggle()
-                    }
-                } label: {
-                    Label("Swap roles", systemImage: "arrow.up.arrow.down")
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 12)
-                        .frame(minHeight: 44)
-                        .background(.regularMaterial, in: Capsule())
-                }
-                .accessibilityHint("Moves the active PencilKit canvas to the opposite half")
-                .position(x: geometry.size.width / 2, y: paneHeight + playerGap / 2)
             }
             .background(Color(red: 0.96, green: 0.95, blue: 0.91))
         }
@@ -62,9 +46,12 @@ struct Dwm11LayoutSpikeView: View {
         Rectangle()
             .fill(Color(red: 0.96, green: 0.95, blue: 0.91))
             .overlay(alignment: .center) {
-                Capsule()
-                    .fill(.black.opacity(0.08))
-                    .frame(width: 72, height: 1)
+                Image(systemName: "timer")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.blue)
+                    .frame(width: 36, height: 36)
+                    .background(.white, in: Circle())
+                    .accessibilityLabel("Blue turn timer placeholder")
             }
             .frame(height: playerGap)
     }
@@ -77,8 +64,6 @@ struct Dwm11LayoutSpikeView: View {
                 Spacer()
                 Label("Medium pen", systemImage: "pencil.tip")
                     .font(.caption2.weight(.semibold))
-                Text("01:00")
-                    .font(.caption.monospacedDigit().weight(.semibold))
             }
             .frame(minHeight: 32)
 
@@ -175,59 +160,49 @@ struct Dwm11LayoutSpikeView: View {
 
     private func guesserHalf(rotated: Bool) -> some View {
         GeometryReader { geometry in
-            let compactKeyboardHeight: CGFloat = 92
-            let fixedContentHeight: CGFloat = 22 + 28 + 38 + compactKeyboardHeight + 20
+            let availableWidth = max(0, geometry.size.width - 16)
+            let keyHeight = min(28, max(18, (geometry.size.height - 100) / 3))
+            let keyboardHeight = keyHeight * 3 + 4
+            let fixedContentHeight = 22 + 32 + keyboardHeight + 40
             let previewAreaHeight = min(
                 geometry.size.height * 0.5,
                 max(0, geometry.size.height - fixedContentHeight)
             )
             let aspectRatio = canvasViewport.width / max(canvasViewport.height, 1)
-            let previewWidth = min(geometry.size.width - 16, previewAreaHeight * aspectRatio)
+            let mirrorMaxWidth = min(availableWidth * 0.82, 500)
+            let previewWidth = min(mirrorMaxWidth, previewAreaHeight * aspectRatio)
             let previewHeight = previewWidth / max(aspectRatio, 0.1)
+            let contentWidth = min(availableWidth, max(180, previewWidth + 28))
 
             VStack(spacing: 3) {
                 HStack {
                     Text("GUESSER · PLAYER 2")
                         .font(.caption.weight(.bold))
-                    Spacer()
-                    Label("Live mirror", systemImage: "arrow.triangle.2.circlepath")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
                 }
                 .frame(minHeight: 22)
-
-                HStack(spacing: 6) {
-                    ForEach(Array(recentGuesses.prefix(3).enumerated()), id: \.offset) { index, guess in
-                        Text(guess)
-                            .font(.caption.weight(.semibold))
-                            .lineLimit(1)
-                            .padding(.horizontal, 10)
-                            .frame(minHeight: 28)
-                            .background(index == 0 ? Color.yellow.opacity(0.45) : .white,
-                                        in: Capsule())
-                    }
-                    Spacer(minLength: 0)
-                }
 
                 DrawingMirror(drawing: drawing, viewport: canvasViewport)
                     .frame(width: previewWidth, height: previewHeight)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                Text(typedGuess.isEmpty ? "_ _ _ _ _ _ _ _" : typedGuess)
-                    .font(.body.weight(.medium).monospaced())
-                    .tracking(typedGuess.isEmpty ? 2 : 0)
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, minHeight: 38)
-                    .background(.white, in: RoundedRectangle(cornerRadius: 10))
-                    .accessibilityLabel(typedGuess.isEmpty ? "Hint: eight letters" : "Guess: \(typedGuess)")
+                VStack(spacing: 4) {
+                    Text(hintWithTypedLetters)
+                        .font(.system(size: 16, weight: .medium, design: .monospaced))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.55)
+                        .frame(width: previewWidth, height: 30)
+                        .background(.white, in: RoundedRectangle(cornerRadius: 8))
+                        .accessibilityLabel(typedGuess.isEmpty
+                                            ? "Hint: nine letters"
+                                            : "Guess so far: \(typedGuess), nine letters")
 
-                GuessKeyboard(typedGuess: $typedGuess) {
-                    guard !typedGuess.isEmpty else { return }
-                    recentGuesses.insert(typedGuess, at: 0)
-                    recentGuesses = Array(recentGuesses.prefix(3))
-                    typedGuess = ""
+                    GuessKeyboard(typedGuess: $typedGuess, keyHeight: keyHeight) {
+                        guard !typedGuess.isEmpty else { return }
+                        typedGuess = ""
+                    }
+                    .frame(width: contentWidth, height: keyboardHeight)
                 }
-                .frame(height: compactKeyboardHeight)
+                .frame(width: contentWidth)
             }
             .padding(8)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -373,39 +348,50 @@ private struct SpikeDrawingCanvasView: UIViewRepresentable {
 
 private struct GuessKeyboard: View {
     @Binding var typedGuess: String
+    let keyHeight: CGFloat
     let submit: () -> Void
 
     private let rows = [Array("qwertyuiop"), Array("asdfghjkl"), Array("zxcvbnm")]
 
     var body: some View {
-        VStack(spacing: 2) {
-            ForEach(Array(rows.dropLast().enumerated()), id: \.offset) { _, row in
-                HStack(spacing: 4) {
-                    ForEach(row, id: \.self) { character in
-                        key(character)
-                    }
-                }
-            }
+        GeometryReader { geometry in
+            let keySpacing: CGFloat = 2
+            let keyWidth = max(0, (geometry.size.width - keySpacing * 9) / 10)
+            let fontSize = min(14, max(9, keyHeight * 0.46))
 
-            HStack(spacing: 4) {
-                ForEach(rows.last ?? [], id: \.self) { character in
-                    key(character)
+            VStack(spacing: keySpacing) {
+                ForEach(Array(rows.prefix(2).enumerated()), id: \.offset) { _, row in
+                    HStack(spacing: keySpacing) {
+                        ForEach(row, id: \.self) { character in
+                            key(character, width: keyWidth, fontSize: fontSize)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
                 }
-                Button("Submit", action: submit)
-                    .font(.system(size: 10, weight: .bold))
-                    .frame(maxWidth: .infinity, minHeight: 26)
-                    .background(.white, in: RoundedRectangle(cornerRadius: 5))
-                    .disabled(typedGuess.isEmpty)
+
+                HStack(spacing: keySpacing) {
+                    ForEach(rows.last ?? [], id: \.self) { character in
+                        key(character, width: keyWidth, fontSize: fontSize)
+                    }
+                    Button("Submit", action: submit)
+                        .font(.system(size: fontSize, weight: .bold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .frame(width: keyWidth * 2 + keySpacing, height: keyHeight)
+                        .background(.white, in: RoundedRectangle(cornerRadius: 5))
+                        .disabled(typedGuess.isEmpty)
+                }
+                .frame(maxWidth: .infinity)
             }
         }
         .buttonStyle(.plain)
     }
 
-    private func key(_ character: Character) -> some View {
+    private func key(_ character: Character, width: CGFloat, fontSize: CGFloat) -> some View {
         let title = String(character)
         return Button(title, action: { typedGuess.append(character) })
-            .font(.system(size: 12, weight: .semibold))
-            .frame(maxWidth: .infinity, minHeight: 26)
+            .font(.system(size: fontSize, weight: .semibold))
+            .frame(width: width, height: keyHeight)
             .background(.white, in: RoundedRectangle(cornerRadius: 5))
             .accessibilityLabel(title)
     }

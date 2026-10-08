@@ -15,6 +15,8 @@ SwiftUI app shell
 │   ├── DrawingWorkspaceView
 │   ├── DrawingCanvasView (PencilKit adapter)
 │   └── DrawingSessionHUD
+├── Player names
+│   └── PlayerNamesStore (UserDefaults adapter)
 └── Guessing rules
     ├── GuessMatcher (pure domain logic)
     └── GuessMatch

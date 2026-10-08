@@ -12,3 +12,8 @@ iOS/iPadOS 18 or newer. Existing Mac Catalyst support is retained for validation
 The current boundaries and drawing behavior are documented in
 [ARCHITECTURE.md](ARCHITECTURE.md). Future ideas live in [docs/IDEAS.md](docs/IDEAS.md).
 Source documentation uses Apple’s Xcode markup (`///`).
+
+## Continuous integration
+
+- Every pull request and push to `codex/m1-same-tablet` runs an iOS Debug build and Mac Catalyst tests on GitHub Actions.
+- A green check means the committed project builds and available tests pass; it does not replace iPad mini playtesting.

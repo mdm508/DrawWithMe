@@ -5,7 +5,7 @@ import UIKit
 struct Dwm11LayoutSpikeView: View {
     @State private var drawing = Self.sampleDrawing()
     @State private var selectedColorID = "red"
-    @State private var secretWordIsHidden = false
+    @State private var drawerIsBottom = true
     @State private var typedGuess = ""
     @State private var canvasViewport = CGSize(width: 560, height: 300)
 
@@ -30,11 +30,21 @@ struct Dwm11LayoutSpikeView: View {
 
             ZStack {
                 VStack(spacing: 0) {
-                    guesserHalf(rotated: true)
-                        .frame(height: paneHeight)
+                    if drawerIsBottom {
+                        guesserHalf(rotated: true)
+                            .frame(height: paneHeight)
+                    } else {
+                        drawerHalf(rotated: true)
+                            .frame(height: paneHeight)
+                    }
                     playerSeparator
-                    drawerHalf(rotated: false)
-                        .frame(height: paneHeight)
+                    if drawerIsBottom {
+                        drawerHalf(rotated: false)
+                            .frame(height: paneHeight)
+                    } else {
+                        guesserHalf(rotated: false)
+                            .frame(height: paneHeight)
+                    }
                 }
             }
             .background(Color(red: 0.96, green: 0.95, blue: 0.91))
@@ -53,6 +63,23 @@ struct Dwm11LayoutSpikeView: View {
                     .background(.white, in: Circle())
                     .accessibilityLabel("Blue turn timer placeholder")
             }
+            .overlay(alignment: .trailing) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        drawerIsBottom.toggle()
+                    }
+                } label: {
+                    Image(systemName: "arrow.up.arrow.down")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 40, height: 40)
+                        .background(.white, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 8)
+                .accessibilityLabel("Flip player roles")
+                .accessibilityHint("Switches which side has the drawing tools and guessing keyboard")
+            }
             .frame(height: playerGap)
     }
 
@@ -61,29 +88,8 @@ struct Dwm11LayoutSpikeView: View {
             HStack {
                 Label("DRAWER · PLAYER 1", systemImage: "pencil.tip.crop.circle")
                     .font(.caption.weight(.bold))
-                Spacer()
-                Label("Medium pen", systemImage: "pencil.tip")
-                    .font(.caption2.weight(.semibold))
             }
             .frame(minHeight: 32)
-
-            HStack(spacing: 8) {
-                Text("SECRET WORD")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.secondary)
-                Text(secretWordIsHidden ? "•••••••••" : "butterfly")
-                    .font(.headline.weight(.semibold))
-                Spacer(minLength: 0)
-                Text(secretWordIsHidden ? "hold to reveal" : "hold to hide")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 12)
-            .frame(minHeight: 40)
-            .background(.white.opacity(0.92), in: RoundedRectangle(cornerRadius: 12))
-            .onLongPressGesture(minimumDuration: 0.15) {
-                secretWordIsHidden.toggle()
-            }
 
             GeometryReader { toolsArea in
                 HStack(spacing: 6) {

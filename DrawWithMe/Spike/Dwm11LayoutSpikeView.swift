@@ -171,11 +171,11 @@ struct Dwm11LayoutSpikeView: View {
             let keyboardHeight = keyHeight * 3 + 4
             let fixedContentHeight = 22 + 32 + keyboardHeight + 40
             let previewAreaHeight = min(
-                geometry.size.height * 0.5,
+                geometry.size.height * 0.64,
                 max(0, geometry.size.height - fixedContentHeight)
             )
             let aspectRatio = canvasViewport.width / max(canvasViewport.height, 1)
-            let mirrorMaxWidth = min(availableWidth * 0.82, 500)
+            let mirrorMaxWidth = min(availableWidth * 0.9, 600)
             let previewWidth = min(mirrorMaxWidth, previewAreaHeight * aspectRatio)
             let previewHeight = previewWidth / max(aspectRatio, 0.1)
             let contentWidth = min(availableWidth, max(180, previewWidth + 28))
@@ -189,7 +189,7 @@ struct Dwm11LayoutSpikeView: View {
 
                 DrawingMirror(drawing: drawing, viewport: canvasViewport)
                     .frame(width: previewWidth, height: previewHeight)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(maxWidth: .infinity)
 
                 VStack(spacing: 4) {
                     Text(hintWithTypedLetters)
